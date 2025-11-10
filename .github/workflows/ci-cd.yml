@@ -60,11 +60,11 @@ jobs:
           echo "Uploading $FILE_NAME to Nexus as version $VERSION..."
           curl -v -u "${{ env.NEXUS_USERNAME }}:${{ env.NEXUS_PASSWORD }}" \
             --upload-file "$WAR_FILE" \
-            "${{ env.NEXUS_URL }}/repository/${{ env.NEXUS_REPO }}/${{ env.NEXUS_GROUP }}/${{ NEXUS_ARTIFACT }}/${VERSION}/${{ NEXUS_ARTIFACT }}-${VERSION}.war"
+            "${{ env.NEXUS_URL }}/repository/${{ env.NEXUS_REPO }}/${{ env.NEXUS_GROUP }}/${{ env.NEXUS_ARTIFACT }}/${VERSION}/${{ env.NEXUS_ARTIFACT }}-${VERSION}.war"
 
           echo "✅ Uploaded successfully!"
 
-      # === Stage 6: Deploy to Tomcat ===
+      # === Stage 6: Deploy to Tomcat (directly from built WAR) ===
       - name: 🚀 Deploy WAR to Tomcat
         run: |
           set -e
@@ -73,11 +73,11 @@ jobs:
 
           echo "🧹 Removing old deployment..."
           curl -u "${{ env.TOMCAT_MANAGER_USER }}:${{ env.TOMCAT_MANAGER_PASS }}" \
-               "${{ env.TOMCAT_MANAGER_URL }}/undeploy?path=/${APP_NAME}" || true
+            "${{ env.TOMCAT_MANAGER_URL }}/undeploy?path=/${APP_NAME}" || true
 
           echo "🚀 Deploying new WAR to Tomcat..."
           curl -u "${{ env.TOMCAT_MANAGER_USER }}:${{ env.TOMCAT_MANAGER_PASS }}" \
-               --upload-file "$WAR_FILE" \
-               "${{ env.TOMCAT_MANAGER_URL }}/deploy?path=/${APP_NAME}&update=true"
+            --upload-file "$WAR_FILE" \
+            "${{ env.TOMCAT_MANAGER_URL }}/deploy?path=/${APP_NAME}&update=true"
 
           echo "✅ Deployment successful!"
