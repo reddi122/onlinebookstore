@@ -14,8 +14,8 @@ jobs:
       NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
       NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
       NEXUS_REPO: maven-releases
-      NEXUS_GROUP: com/web/cal
-      NEXUS_ARTIFACT: webapp-add
+      NEXUS_GROUP: com/web/onlinebookstore
+      NEXUS_ARTIFACT: onlinebookstore-add
       TOMCAT_MANAGER_URL: ${{ secrets.TOMCAT_MANAGER_URL }}
       TOMCAT_MANAGER_USER: ${{ secrets.TOMCAT_MANAGER_USER }}
       TOMCAT_MANAGER_PASS: ${{ secrets.TOMCAT_MANAGER_PASS }}
@@ -38,7 +38,7 @@ jobs:
         run: |
           mvn clean verify sonar:sonar \
             -DskipTests \
-            -Dsonar.projectKey=Java-Web-Calculator-App \
+            -Dsonar.projectKey=onlinebookstore-App \
             -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
             -Dsonar.login=${{ env.SONAR_TOKEN }}
 
