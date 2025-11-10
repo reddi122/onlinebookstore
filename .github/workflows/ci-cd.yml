@@ -1,8 +1,8 @@
 name: Java Web App CI/CD
 
 on:
-  workflow_dispatch:
-
+  push:
+    branches: [ master ]
 jobs:
   build:
     runs-on: ubuntu-latest
