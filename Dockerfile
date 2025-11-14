@@ -4,8 +4,8 @@ FROM tomcat:jre21
 # Set working directory inside container
 WORKDIR /usr/local/tomcat/webapps/
 
-# Copy your built JAR/WAR from Jenkins workspace into Tomcat webapps
-COPY onlinebookstore-1.0.0.jar ./onlinebookstore.war
+# Copy WAR file built by Maven
+COPY target/onlinebookstore.war ./onlinebookstore.war
 
 # Expose Tomcat port
 EXPOSE 8080
