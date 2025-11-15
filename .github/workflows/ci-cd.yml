@@ -1,83 +1,117 @@
-name: Java Web App CI/CD
+name: CI-CD Pipeline
 
 on:
   push:
-    branches: [ master ]
+    branches: [ "master" ]
+  workflow_dispatch:
+
+env:
+  NEXUS_URL: http://3.82.98.94:8082/repository/maven-releases/
+  GROUP_ID: com/bookstore
+  ARTIFACT_ID: onlinebookstore
+
 jobs:
+
   build:
     runs-on: ubuntu-latest
 
-    env:
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      NEXUS_URL: ${{ secrets.NEXUS_URL }}
-      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-      NEXUS_REPO: maven-releases
-      NEXUS_GROUP: com/web/onlinebookstore
-      NEXUS_ARTIFACT: onlinebookstore-add
-      TOMCAT_MANAGER_URL: ${{ secrets.TOMCAT_MANAGER_URL }}
-      TOMCAT_MANAGER_USER: ${{ secrets.TOMCAT_MANAGER_USER }}
-      TOMCAT_MANAGER_PASS: ${{ secrets.TOMCAT_MANAGER_PASS }}
-
     steps:
-      # === Stage 1: Checkout Code ===
-      - name: 📦 Checkout source
+
+      # -------------------------
+      # 1. Checkout Code
+      # -------------------------
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # === Stage 2: Set up JDK and Maven ===
-      - name: ☕ Set up JDK 17
+      # -------------------------
+      # 2. Install JDK 17
+      # -------------------------
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
-          cache: maven
+          java-version: '17'
 
-      # === Stage 3: SonarQube Analysis ===
-      - name: 🔍 Run SonarQube Analysis
+      # -------------------------
+      # 3. Install Maven
+      # -------------------------
+      - name: Install Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: '3.9.6'
+
+      # -------------------------
+      # 4. SonarQube Scan
+      # -------------------------
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn clean verify sonar:sonar \
-            -DskipTests \
-            -Dsonar.projectKey=onlinebookstore-App \
-            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
-            -Dsonar.login=${{ env.SONAR_TOKEN }}
+            -Dsonar.projectKey=onlinebookstore \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST }} \
+            -Dsonar.login=$SONAR_TOKEN
 
-      # === Stage 4: Build Artifact ===
-      - name: ⚙️ Build WAR package
+      # -------------------------
+      # 5. Build WAR
+      # -------------------------
+      - name: Build WAR
+        run: mvn clean package -DskipTests
+
+      # -------------------------
+      # 6. Upload WAR to Nexus
+      # -------------------------
+      - name: Upload to Nexus
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
         run: |
-          mvn clean package -DskipTests
-          echo "✅ Build Completed!"
-          ls -lh target/*.war || true
+          mvn deploy:deploy-file \
+            -Dfile=target/onlinebookstore.war \
+            -DgroupId=com.bookstore \
+            -DartifactId=onlinebookstore \
+            -Dversion=1.0.${{ github.run_number }} \
+            -Dpackaging=war \
+            -DgeneratePom=true \
+            -DrepositoryId=nexus \
+            -Durl=$NEXUS_URL \
+            -Dusername=$NEXUS_USER \
+            -Dpassword=$NEXUS_PASS
 
-      # === Stage 5: Upload Artifact to Nexus ===
-      - name: 📤 Upload WAR to Nexus
+      # -------------------------
+      # 7. Download Latest Artifact
+      # -------------------------
+      - name: Download Latest WAR
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
         run: |
-          set -e
-          WAR_FILE=$(ls target/*.war | head -1)
-          VERSION="0.0.${{ github.run_number }}"
-          FILE_NAME=$(basename "$WAR_FILE")
+          export ART_URL="$NEXUS_URL/$GROUP_ID/$ARTIFACT_ID/1.0.${{ github.run_number }}/$ARTIFACT_ID-1.0.${{ github.run_number }}.war"
+          echo "Artifact URL = $ART_URL"
+          curl -u $NEXUS_USER:$NEXUS_PASS -L $ART_URL -o onlinebookstore.war
 
-          echo "Uploading $FILE_NAME to Nexus as version $VERSION..."
-          curl -v -u "${{ env.NEXUS_USERNAME }}:${{ env.NEXUS_PASSWORD }}" \
-            --upload-file "$WAR_FILE" \
-            "${{ env.NEXUS_URL }}/repository/${{ env.NEXUS_REPO }}/${{ env.NEXUS_GROUP }}/${{ env.NEXUS_ARTIFACT }}/${VERSION}/${{ env.NEXUS_ARTIFACT }}-${VERSION}.war"
-
-          echo "✅ Uploaded successfully!"
-
-      # === Stage 6: Deploy to Tomcat (directly from built WAR) ===
-      - name: 🚀 Deploy WAR to Tomcat
+      # -------------------------
+      # 8. Build Docker Image
+      # -------------------------
+      - name: Build Docker Image
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKERHUB_PASS }}
         run: |
-          set -e
-          WAR_FILE=$(ls target/*.war | head -1)
-          APP_NAME=$(echo "$WAR_FILE" | sed 's/-[0-9].*//')
+          docker build \
+            --build-arg ARTIFACT_URL="$NEXUS_URL/$GROUP_ID/$ARTIFACT_ID/1.0.${{ github.run_number }}/$ARTIFACT_ID-1.0.${{ github.run_number }}.war" \
+            -t $DOCKER_USER/onlinebookstore:${{ github.run_number }} .
 
-          echo "🧹 Removing old deployment..."
-          curl -u "${{ env.TOMCAT_MANAGER_USER }}:${{ env.TOMCAT_MANAGER_PASS }}" \
-            "${{ env.TOMCAT_MANAGER_URL }}/undeploy?path=/${APP_NAME}" || true
+          docker tag $DOCKER_USER/onlinebookstore:${{ github.run_number }} $DOCKER_USER/onlinebookstore:latest
 
-          echo "🚀 Deploying new WAR to Tomcat..."
-          curl -u "${{ env.TOMCAT_MANAGER_USER }}:${{ env.TOMCAT_MANAGER_PASS }}" \
-            --upload-file "$WAR_FILE" \
-            "${{ env.TOMCAT_MANAGER_URL }}/deploy?path=/${APP_NAME}&update=true"
-
-          echo "✅ Deployment successful!"
+      # -------------------------
+      # 9. Push to DockerHub
+      # -------------------------
+      - name: Push to DockerHub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKERHUB_PASS }}
+        run: |
+          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          docker push $DOCKER_USER/onlinebookstore:${{ github.run_number }}
+          docker push $DOCKER_USER/onlinebookstore:latest
