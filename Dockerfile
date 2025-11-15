@@ -35,14 +35,26 @@
 #EXPOSE 8080
 #CMD ["catalina.sh", "run"]
 
-FROM tomcat:11.0.14-jdk21-temurin
+#FROM tomcat:11.0.14-jdk21-temurin
 
 # Clean default apps (optional)
-RUN rm -rf /usr/local/tomcat/webapps/*
+#RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Deploy your WAR
-COPY onlinebookstore.war /usr/local/tomcat/webapps/ROOT.war
+#COPY onlinebookstore.war /usr/local/tomcat/webapps/ROOT.war
 
+#EXPOSE 8080
+#CMD ["catalina.sh", "run"]
+
+FROM tomcat:9.0-jdk17
+ 
+# Clean default ROOT webapp
+RUN rm -rf /usr/local/tomcat/webapps/*
+ 
+# Copy your WAR file from Jenkins into the Tomcat webapps folder
+COPY target/*.war /usr/local/tomcat/webapps/
+ 
 EXPOSE 8080
+ 
 CMD ["catalina.sh", "run"]
 
