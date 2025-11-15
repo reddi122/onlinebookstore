@@ -13,18 +13,24 @@
 # Start Tomcat
 #CMD ["catalina.sh", "run"]
 
-FROM tomcat:jre21
+#FROM tomcat:jre21
 
 # Install curl for downloading artifact
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Artifact URL passed through Jenkins
-ARG ARTIFACT_URL
+#ARG ARTIFACT_URL
 
 # Download WAR from Nexus
-RUN curl -L -o /usr/local/tomcat/webapps/onlinebookstore.war "${ARTIFACT_URL}"
+#RUN curl -L -o /usr/local/tomcat/webapps/onlinebookstore.war "${ARTIFACT_URL}"
+
+#EXPOSE 8080
+#CMD ["catalina.sh", "run"]
+
+
+FROM tomcat:jre21
+
+COPY onlinebookstore.war /usr/local/tomcat/webapps/
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
-
-
