@@ -10,7 +10,7 @@ jobs:
 
     env:
       DOCKER_IMAGE: reddi122/onlinebookstore-java:${{ github.run_number }}
-      NEXUS_URL: 3.82.98.94:8082
+      NEXUS_URL: 54.210.92.84:8082
       NEXUS_REPO: maven-snapshots
 
     steps:
@@ -54,7 +54,7 @@ jobs:
       run: |
         mvn sonar:sonar \
           -Dsonar.projectKey=onlinebookstore-java \
-          -Dsonar.host.url=http://3.82.98.94:8081/ \
+          -Dsonar.host.url=http://54.210.92.84:8081/ \
           -Dsonar.login=$SONAR_TOKEN
 
     - name: Build WAR
