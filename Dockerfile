@@ -28,9 +28,21 @@
 #CMD ["catalina.sh", "run"]
 
 
-FROM tomcat:jre21
+#FROM tomcat:jre21
 
-COPY onlinebookstore.war /usr/local/tomcat/webapps/
+#COPY onlinebookstore.war /usr/local/tomcat/webapps/
+
+#EXPOSE 8080
+#CMD ["catalina.sh", "run"]
+
+FROM tomcat:11.0.14-jdk21-temurin
+
+# Clean default apps (optional)
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Deploy your WAR
+COPY onlinebookstore.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
