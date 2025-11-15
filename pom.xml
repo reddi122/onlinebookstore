@@ -75,12 +75,13 @@
 
 	<distributionManagement>
     	<repository>
-      		<id>obs</id>
-      		<url>http://3.82.98.94:8082/repository/obs/</url>
+      		<id>maven-releases</id>
+      		<url>http://3.82.98.94:8082/repository/maven-releases/</url>
     	</repository>
    </distributionManagement>
 
 </project>
+
 
 
 
