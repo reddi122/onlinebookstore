@@ -10,7 +10,7 @@ jobs:
 
     env:
       DOCKER_IMAGE: reddi122/onlinebookstore-java:${{ github.run_number }}
-      NEXUS_URL: 54.165.55.79:8082
+      NEXUS_URL: 54.210.92.84:8082
       NEXUS_REPO: maven-snapshots
 
     steps:
@@ -54,7 +54,7 @@ jobs:
       run: |
         mvn sonar:sonar \
           -Dsonar.projectKey=onlinebookstore-java \
-          -Dsonar.host.url=http://54.165.55.79:8081/ \
+          -Dsonar.host.url=http://54.210.92.84:8081/ \
           -Dsonar.login=$SONAR_TOKEN
 
     - name: Build WAR
@@ -80,10 +80,13 @@ jobs:
     - name: Push Docker Image
       run: docker push ${{ env.DOCKER_IMAGE }}
 
-    - name: Run Docker Container
-      run: |
-        # Stop any existing container with the same name
-        docker rm -f onlinebookstore || true
-
-        # Run the new container on port 8888
-        docker run -d --name onlinebookstore -p 8889:8080 ${{ env.DOCKER_IMAGE }}
+    - name: Deploy & Run Container on Server
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          docker rm -f onlinebookstore || true
+          docker run -d --name onlinebookstore -p 8889:8080 ${{ env.DOCKER_IMAGE }}
+          docker ps -a
