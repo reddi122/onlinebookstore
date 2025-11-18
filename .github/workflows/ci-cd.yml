@@ -86,4 +86,4 @@ jobs:
         docker rm -f onlinebookstore || true
 
         # Run the new container on port 8888
-        docker run -d --name onlinebookstore -p 8888:8080 ${{ env.DOCKER_IMAGE }}
+        docker run -d --name onlinebookstore -p 8889:8080 ${{ env.DOCKER_IMAGE }}
