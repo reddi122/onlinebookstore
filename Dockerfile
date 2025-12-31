@@ -46,15 +46,37 @@
 #EXPOSE 8080
 #CMD ["catalina.sh", "run"]
 
-FROM tomcat:9.0-jdk17
+#FROM tomcat:9.0-jdk17
  
 # Clean default ROOT webapp
-RUN rm -rf /usr/local/tomcat/webapps/*
+#RUN rm -rf /usr/local/tomcat/webapps/*
  
 # Copy your WAR file from Jenkins into the Tomcat webapps folder
-COPY target/*.war /usr/local/tomcat/webapps/
+#COPY target/*.war /usr/local/tomcat/webapps/
  
+#EXPOSE 8080
+ 
+#CMD ["catalina.sh", "run"]
+
+
+FROM tomcat:9.0-jdk17
+
+# Remove default Tomcat apps
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Build arguments from Jenkins
+ARG NEXUS_URL
+ARG NEXUS_REPO
+ARG GROUP_ID=onlinebookstore
+ARG ARTIFACT_ID=onlinebookstore
+ARG VERSION
+
+# Download WAR directly from Nexus
+ADD http://${NEXUS_URL}/repository/${NEXUS_REPO}/${GROUP_ID}/${ARTIFACT_ID}/${VERSION}/${ARTIFACT_ID}-${VERSION}.war \
+    /usr/local/tomcat/webapps/ROOT.war
+
 EXPOSE 8080
- 
+
 CMD ["catalina.sh", "run"]
+
 
