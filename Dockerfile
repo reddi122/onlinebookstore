@@ -80,6 +80,29 @@
 #CMD ["catalina.sh", "run"]
 
 
+#FROM tomcat:9.0-jdk17
+
+#RUN rm -rf /usr/local/tomcat/webapps/*
+
+#RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
+
+#ARG NEXUS_URL
+#ARG VERSION
+#ARG GROUP_ID=onlinebookstore
+#ARG ARTIFACT_ID=onlinebookstore
+
+#RUN mvn dependency:get \
+ # -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
+  #-DgroupId=${GROUP_ID} \
+  #-DartifactId=${ARTIFACT_ID} \
+  #-Dversion=${VERSION} \
+  #-Dpackaging=war \
+  #-Ddest=/usr/local/tomcat/webapps/ROOT.war
+
+#EXPOSE 8080
+#CMD ["catalina.sh", "run"]
+
+
 FROM tomcat:9.0-jdk17
 
 RUN rm -rf /usr/local/tomcat/webapps/*
@@ -90,16 +113,34 @@ ARG NEXUS_URL
 ARG VERSION
 ARG GROUP_ID=onlinebookstore
 ARG ARTIFACT_ID=onlinebookstore
+ARG NEXUS_USER
+ARG NEXUS_PASS
 
-RUN mvn dependency:get \
-  -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
-  -DgroupId=${GROUP_ID} \
-  -DartifactId=${ARTIFACT_ID} \
-  -Dversion=${VERSION} \
-  -Dpackaging=war \
-  -Ddest=/usr/local/tomcat/webapps/ROOT.war
+# Create Maven settings with Nexus credentials
+RUN mkdir -p /root/.m2 && \
+    echo '<settings>
+      <servers>
+        <server>
+          <id>nexus</id>
+          <username>'"${NEXUS_USER}"'</username>
+          <password>'"${NEXUS_PASS}"'</password>
+        </server>
+      </servers>
+    </settings>' > /root/.m2/settings.xml
+
+# Download SNAPSHOT safely
+RUN mvn dependency:copy \
+  -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
+  -DoutputDirectory=/usr/local/tomcat/webapps \
+  -DdestFileName=ROOT.war \
+  -DrepoUrl=http://${NEXUS_URL}/repository/maven-snapshots \
+  -DrepositoryId=nexus \
+  -Dtransitive=false
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
+
+
 
 
