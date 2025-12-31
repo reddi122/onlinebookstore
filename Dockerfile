@@ -115,7 +115,7 @@ ARG ARTIFACT_ID=onlinebookstore
 ARG NEXUS_USER
 ARG NEXUS_PASS
 
-# Create Maven settings.xml safely
+# Maven settings with Nexus credentials
 RUN mkdir -p /root/.m2 && \
     cat > /root/.m2/settings.xml <<EOF
 <settings>
@@ -129,15 +129,13 @@ RUN mkdir -p /root/.m2 && \
 </settings>
 EOF
 
+# ✅ CORRECT SNAPSHOT DOWNLOAD
 RUN mvn dependency:copy \
   -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
   -DoutputDirectory=/usr/local/tomcat/webapps \
   -DdestFileName=ROOT.war \
-  -DrepoUrl=http://${NEXUS_URL}/repository/maven-snapshots \
-  -DrepositoryId=nexus \
+  -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
   -Dtransitive=false
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
-
-
