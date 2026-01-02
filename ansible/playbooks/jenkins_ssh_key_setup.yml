@@ -1,0 +1,55 @@
+---
+# PLAY 1: Generate SSH key on Jenkins server
+- name: Generate SSH key on Jenkins server
+  hosts: jenkins_docker
+  become: yes
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: /home/ubuntu/.ssh
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0700"
+
+    - name: Generate SSH key if not exists
+      openssh_keypair:
+        path: /home/ubuntu/.ssh/id_ed25519
+        type: ed25519
+        owner: ubuntu
+        group: ubuntu
+        mode: "0600"
+      register: jenkins_ssh_key
+
+    - name: Read Jenkins public key
+      slurp:
+        src: /home/ubuntu/.ssh/id_ed25519.pub
+      register: jenkins_pubkey
+
+    - name: Set Jenkins public key fact
+      set_fact:
+        jenkins_public_key: "{{ jenkins_pubkey.content | b64decode }}"
+      delegate_to: localhost
+      run_once: true
+
+# PLAY 2: Add Jenkins public key to SonarQube & Nexus
+- name: Add Jenkins public key to SonarQube and Nexus
+  hosts:
+    - sonarqube
+    - nexus
+  become: yes
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: /home/ubuntu/.ssh
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0700"
+
+    - name: Add Jenkins public key to authorized_keys
+      authorized_key:
+        user: ubuntu
+        key: "{{ hostvars['localhost']['jenkins_public_key'] }}"
+        path: /home/ubuntu/.ssh/authorized_keys
+        state: present

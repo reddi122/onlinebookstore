@@ -1,10 +1,74 @@
 ---
-- name: Add Ansible master public key to servers
-  hosts: all
+########################################
+# 1️⃣ Generate SSH key on Jenkins server
+########################################
+- name: Generate SSH key on Jenkins server
+  hosts: jenkins_docker
   become: yes
+
+  vars:
+    ssh_user: ubuntu
+    ssh_dir: /home/ubuntu/.ssh
+    private_key: /home/ubuntu/.ssh/id_ed25519
+    public_key: /home/ubuntu/.ssh/id_ed25519.pub
+
   tasks:
-    - name: Add public key to authorized_keys
-      authorized_key:
-        user: ubuntu
-        key: "{{ lookup('file', '/home/ubuntu/.ssh/id_ed25519.pub') }}"
+    - name: Ensure .ssh directory exists on Jenkins
+      file:
+        path: "{{ ssh_dir }}"
+        state: directory
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: "0700"
+
+    - name: Generate SSH key pair on Jenkins
+      openssh_keypair:
+        path: "{{ private_key }}"
+        type: ed25519
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: "0600"
+
+    - name: Read Jenkins public key
+      command: cat {{ public_key }}
+      register: jenkins_pubkey
+      run_once: true
+
+    - name: Save Jenkins public key as fact
+      set_fact:
+        jenkins_ssh_key: "{{ jenkins_pubkey.stdout }}"
+      run_once: true
+
+########################################
+# 2️⃣ Add Jenkins key to SonarQube & Nexus
+########################################
+- name: Add Jenkins SSH key to SonarQube and Nexus
+  hosts: sonarqube:nexus
+  become: yes
+
+  vars:
+    ssh_user: ubuntu
+    ssh_dir: /home/ubuntu/.ssh
+
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: "{{ ssh_dir }}"
+        state: directory
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: "0700"
+
+    - name: Ensure authorized_keys exists
+      file:
+        path: "{{ ssh_dir }}/authorized_keys"
+        state: touch
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: "0600"
+
+    - name: Add Jenkins public key to authorized_keys
+      lineinfile:
+        path: "{{ ssh_dir }}/authorized_keys"
+        line: "{{ hostvars[groups['jenkins_docker'][0]].jenkins_ssh_key }}"
         state: present
