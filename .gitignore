@@ -5,3 +5,7 @@ Terraform/.terraform/
 terraform.tfstate
 terraform.tfstate.backup
 *.tfvars
+
+# Ansible
+
+ansible/my

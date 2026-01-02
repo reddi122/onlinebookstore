@@ -1,0 +1,6 @@
+---
+- name: restart jenkins
+  docker_container:
+    name: jenkins
+    state: started
+    restart: true

@@ -1,0 +1,87 @@
+---
+# 1️⃣ Create Nexus data directory
+- name: Create Nexus data directory
+  file:
+    path: /opt/nexus-data
+    state: directory
+    owner: 200
+    group: 200
+    mode: "0755"
+
+# 2️⃣ Run Nexus container
+- name: Run Nexus container
+  docker_container:
+    name: nexus
+    image: sonatype/nexus3:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "8081:8081"
+    volumes:
+      - /opt/nexus-data:/nexus-data
+
+# 3️⃣ Wait until Nexus API is ready
+- name: Wait for Nexus to be ready
+  uri:
+    url: "http://{{ ansible_host }}:8081/service/rest/v1/status"
+    method: GET
+    status_code: 200
+  register: nexus_status
+  retries: 30
+  delay: 10
+  until: nexus_status.status == 200
+
+# 4️⃣ Read default admin password
+- name: Read Nexus default admin password
+  slurp:
+    src: /opt/nexus-data/admin.password
+  register: nexus_admin_password
+
+- name: Decode Nexus admin password
+  set_fact:
+    nexus_default_password: "{{ nexus_admin_password.content | b64decode }}"
+
+# 5️⃣ Change admin password to admin123
+- name: Change Nexus admin password
+  uri:
+    url: "http://{{ ansible_host }}:8081/service/rest/v1/security/users/admin/change-password"
+    method: PUT
+    user: admin
+    password: "{{ nexus_default_password }}"
+    force_basic_auth: yes
+    headers:
+      Content-Type: text/plain
+    body: "admin123"
+    status_code: [204, 400]
+
+# 6️⃣ Create Maven Proxy Repository (poc1)
+- name: Create Maven proxy repository poc1
+  uri:
+    url: "http://{{ ansible_host }}:8081/service/rest/v1/repositories/maven2/hosted"
+    method: POST
+    user: admin
+    password: "admin123"
+    force_basic_auth: yes
+    headers:
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: poc1
+      online: true
+      storage:
+        blobStoreName: default
+        strictContentTypeValidation: true
+      proxy:
+        remoteUrl: https://repo1.maven.org/maven2/
+        contentMaxAge: 1440
+        metadataMaxAge: 1440
+      negativeCache:
+        enabled: true
+        timeToLive: 1440
+      httpClient:
+        blocked: false
+        autoBlock: true
+      maven:
+        versionPolicy: RELEASE
+        layoutPolicy: STRICT
+    status_code: [201, 400]

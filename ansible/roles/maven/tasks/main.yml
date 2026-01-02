@@ -1,0 +1,19 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install Maven
+  apt:
+    name: maven
+    state: present
+
+- name: Verify Maven version
+  command: mvn -version
+  register: maven_version
+  changed_when: false
+
+- name: Show Maven version
+  debug:
+    var: maven_version.stdout
+
