@@ -210,7 +210,7 @@ RUN printf '<settings>\n\
     <mirror>\n\
       <id>allow-http</id>\n\
       <mirrorOf>external:http:*</mirrorOf>\n\
-      <url>http://%s</url>\n\
+      <url>http://${NEXUS_URL}/repository/poc1-snapshots</url>\n\
     </mirror>\n\
   </mirrors>\n\
   <servers>\n\
