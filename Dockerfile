@@ -209,7 +209,7 @@ RUN printf '<settings>\n\
   <mirrors>\n\
     <mirror>\n\
       <id>allow-http</id>\n\
-      <mirrorOf>*</mirrorOf>\n\
+      <mirrorOf>external:http:*</mirrorOf>\n\
       <url>http://%s</url>\n\
     </mirror>\n\
   </mirrors>\n\
