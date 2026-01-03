@@ -80,12 +80,13 @@
 
 	<distributionManagement>
     	<repository>
-      		<id>poc1</id>
-      		<url>http://18.144.61.36:8081/repository/poc1/</url>
+      		<id>poc1-snapshots</id>
+      		<url>http://18.144.61.36:8081/repository/poc1-snapshots/</url>
     	</repository>
    </distributionManagement>
 
 </project>
+
 
 
 
