@@ -202,36 +202,43 @@ ARG ARTIFACT_ID=onlinebookstore
 ARG NEXUS_USER
 ARG NEXUS_PASS
 
-# Download WAR directly from Nexus SNAPSHOT repo
+# 🔑 Allow HTTP Nexus (DISABLE HTTP BLOCKER)
+RUN mkdir -p /root/.m2 && \
+    cat > /root/.m2/settings.xml <<EOF
+<settings>
+  <mirrors>
+    <mirror>
+      <id>allow-http</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://${NEXUS_URL}</url>
+    </mirror>
+  </mirrors>
+
+  <servers>
+    <server>
+      <id>nexus</id>
+      <username>${NEXUS_USER}</username>
+      <password>${NEXUS_PASS}</password>
+    </server>
+  </servers>
+</settings>
+EOF
+
+# ✅ Correct SNAPSHOT download (metadata-aware)
 RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
-    -DoutputDirectory=/artifact \
-    -DdestFileName=ROOT.war \
-    -DremoteRepositories=nexus::default::http://${NEXUS_USER}:${NEXUS_PASS}@${NEXUS_URL}/repository/poc1-snapshots \
-    -Dmaven.repo.local=/tmp/m2 \
-    -Dtransitive=false
+    -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/poc1-snapshots \
+    -Dmaven.repo.local=/tmp/m2 && \
+    cp /tmp/m2/onlinebookstore/onlinebookstore/${VERSION}/*.war /artifact/ROOT.war
 
 # ==============================
 # STAGE 2 — RUNTIME IMAGE
 # ==============================
 FROM tomcat:9.0-jdk17
 
-# Remove default apps
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copy ONLY the WAR file (no Maven, no credentials)
 COPY --from=downloader /artifact/ROOT.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
-
-
-
-
-
-
-
-
-
-
-
