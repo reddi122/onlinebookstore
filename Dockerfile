@@ -203,7 +203,7 @@ ARG NEXUS_USER
 ARG NEXUS_PASS
 
 # Download WAR directly from Nexus SNAPSHOT repo
-RUN mvn dependency:copy \
+RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
     -DoutputDirectory=/artifact \
     -DdestFileName=ROOT.war \
