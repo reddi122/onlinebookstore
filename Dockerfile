@@ -224,6 +224,10 @@ RUN printf '<settings>\n\
 "$NEXUS_URL" "$NEXUS_USER" "$NEXUS_PASS" \
 > /root/.m2/settings.xml
 
+# Create directories first (THIS IS THE FIX)
+RUN mkdir -p /root/.m2 /artifact
+
+# Download SNAPSHOT WAR and copy it
 
 RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
