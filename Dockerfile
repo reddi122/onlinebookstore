@@ -155,18 +155,18 @@ ARG NEXUS_USER
 ARG NEXUS_PASS
 
 # Create Maven settings with Nexus credentials (temporary)
-RUN mkdir -p /root/.m2 && \
-    cat > /root/.m2/settings.xml <<EOF
-<settings>
-  <servers>
-    <server>
-      <id>nexus</id>
-      <username>${NEXUS_USER}</username>
-      <password>${NEXUS_PASS}</password>
-    </server>
-  </servers>
-</settings>
-EOF
+#RUN mkdir -p /root/.m2 && \
+   # cat > /root/.m2/settings.xml <<EOF
+#<settings>
+ # <servers>
+  #  <server>
+   #   <id>nexus</id>
+    #  <username>${NEXUS_USER}</username>
+     # <password>${NEXUS_PASS}</password>
+   # </server>
+  #</servers>
+#</settings>
+#EOF
 
 # Download artifact from Nexus
 RUN mvn dependency:copy \
