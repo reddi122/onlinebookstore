@@ -102,11 +102,50 @@
 #EXPOSE 8080
 #CMD ["catalina.sh", "run"]
 
-FROM tomcat:9.0-jdk17
+#FROM tomcat:9.0-jdk17
 
-RUN rm -rf /usr/local/tomcat/webapps/*
+#RUN rm -rf /usr/local/tomcat/webapps/*
 
-RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update && apt-get install -y maven curl && rm -rf /var/lib/apt/lists/*
+
+#ARG NEXUS_URL
+#ARG VERSION
+#ARG GROUP_ID=onlinebookstore
+#ARG ARTIFACT_ID=onlinebookstore
+#ARG NEXUS_USER
+#ARG NEXUS_PASS
+
+# Maven settings with Nexus credentials
+#RUN mkdir -p /root/.m2 && \
+#    cat > /root/.m2/settings.xml <<EOF
+#<settings>
+ # <servers>
+ #   <server>
+ #     <id>nexus</id>
+  #    <username>${NEXUS_USER}</username>
+   #   <password>${NEXUS_PASS}</password>
+    #</server>
+  #</servers>
+#</settings>
+#EOF
+
+# ✅ CORRECT SNAPSHOT DOWNLOAD
+#RUN mvn dependency:copy \
+ # -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
+  #-DoutputDirectory=/usr/local/tomcat/webapps \
+ # -DdestFileName=ROOT.war \
+#  -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
+#  -Dtransitive=false
+
+#EXPOSE 8080
+#CMD ["catalina.sh", "run"]
+
+
+
+# ==============================
+# STAGE 1 — DOWNLOAD ARTIFACT
+# ==============================
+FROM maven:3.9.6-eclipse-temurin-17 AS downloader
 
 ARG NEXUS_URL
 ARG VERSION
@@ -115,7 +154,7 @@ ARG ARTIFACT_ID=onlinebookstore
 ARG NEXUS_USER
 ARG NEXUS_PASS
 
-# Maven settings with Nexus credentials
+# Create Maven settings with Nexus credentials (temporary)
 RUN mkdir -p /root/.m2 && \
     cat > /root/.m2/settings.xml <<EOF
 <settings>
@@ -129,13 +168,29 @@ RUN mkdir -p /root/.m2 && \
 </settings>
 EOF
 
-# ✅ CORRECT SNAPSHOT DOWNLOAD
+# Download artifact from Nexus
 RUN mvn dependency:copy \
   -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
-  -DoutputDirectory=/usr/local/tomcat/webapps \
+  -DoutputDirectory=/artifact \
   -DdestFileName=ROOT.war \
   -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
   -Dtransitive=false
 
+# ==============================
+# STAGE 2 — RUNTIME IMAGE
+# ==============================
+FROM tomcat:9.0-jdk17
+
+# Clean default apps
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Copy ONLY the WAR (no Maven, no credentials)
+COPY --from=downloader /artifact/ROOT.war /usr/local/tomcat/webapps/ROOT.war
+
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
+
+
+
+
