@@ -204,7 +204,6 @@ ARG NEXUS_PASS
 
 RUN mkdir -p /root/.m2 /artifact
 
-# ✅ NO HEREDOC → NO EMPTY FILE ISSUE
 RUN printf '<settings>\n\
   <mirrors>\n\
     <mirror>\n\
@@ -224,16 +223,12 @@ RUN printf '<settings>\n\
 "$NEXUS_URL" "$NEXUS_USER" "$NEXUS_PASS" \
 > /root/.m2/settings.xml
 
-# Create directories first (THIS IS THE FIX)
-RUN mkdir -p /root/.m2 /artifact
-
-# Download SNAPSHOT WAR and copy it
-
 RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
     -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/poc1-snapshots \
     -Dmaven.repo.local=/tmp/m2 && \
-    cp /tmp/m2/onlinebookstore/onlinebookstore/${VERSION}/*.war /artifact/ROOT.war
+    cp /tmp/m2/onlinebookstore/onlinebookstore/${VERSION}/*.war /artifact/ && \
+    mv /artifact/*.war /artifact/ROOT.war
 
 # ==============================
 # STAGE 2 — RUNTIME IMAGE
@@ -246,3 +241,4 @@ COPY --from=downloader /artifact/ROOT.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
