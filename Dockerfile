@@ -228,7 +228,7 @@ RUN mvn dependency:get \
     -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/poc1-snapshots \
     -Dmaven.repo.local=/tmp/m2 && \
     cp /tmp/m2/onlinebookstore/onlinebookstore/${VERSION}/*.war /artifact/ && \
-    mv /artifact/*.war /artifact/ROOT.war
+    mv -f $(ls /artifact/*.war | head -n 1) /artifact/ROOT.war
 
 # ==============================
 # STAGE 2 — RUNTIME IMAGE
