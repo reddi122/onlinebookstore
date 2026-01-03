@@ -202,29 +202,26 @@ ARG ARTIFACT_ID=onlinebookstore
 ARG NEXUS_USER
 ARG NEXUS_PASS
 
-# 🔑 Allow HTTP Nexus (DISABLE HTTP BLOCKER)
-RUN mkdir -p /root/.m2 && \
-    cat > /root/.m2/settings.xml <<EOF
-<settings>
-  <mirrors>
-    <mirror>
-      <id>allow-http</id>
-      <mirrorOf>*</mirrorOf>
-      <url>http://${NEXUS_URL}</url>
-    </mirror>
-  </mirrors>
+RUN mkdir -p /root/.m2 /artifact
 
-  <servers>
-    <server>
-      <id>nexus</id>
-      <username>${NEXUS_USER}</username>
-      <password>${NEXUS_PASS}</password>
-    </server>
-  </servers>
-</settings>
-EOF
+# ✅ NO HEREDOC → NO EMPTY FILE ISSUE
+RUN printf '<settings>\n\
+  <mirrors>\n\
+    <mirror>\n\
+      <id>allow-http</id>\n\
+      <mirrorOf>*</mirrorOf>\n\
+      <url>http://%s</url>\n\
+    </mirror>\n\
+  </mirrors>\n\
+  <servers>\n\
+    <server>\n\
+      <id>nexus</id>\n\
+      <username>%s</username>\n\
+      <password>%s</password>\n\
+    </server>\n\
+  </servers>\n\
+</settings>' "$NEXUS_URL" "$NEXUS_USER" "$NEXUS_PASS" > /root/.m2/settings.xml
 
-# ✅ Correct SNAPSHOT download (metadata-aware)
 RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
     -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/poc1-snapshots \
