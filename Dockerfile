@@ -210,7 +210,7 @@ RUN printf '<settings>\n\
     <mirror>\n\
       <id>allow-http</id>\n\
       <mirrorOf>external:http:*</mirrorOf>\n\
-      <url>http://${NEXUS_URL}/repository/poc1-snapshots</url>\n\
+      <url>http://%s/repository/poc1-snapshots</url>\n\
     </mirror>\n\
   </mirrors>\n\
   <servers>\n\
@@ -220,7 +220,10 @@ RUN printf '<settings>\n\
       <password>%s</password>\n\
     </server>\n\
   </servers>\n\
-</settings>' "$NEXUS_URL" "$NEXUS_USER" "$NEXUS_PASS" > /root/.m2/settings.xml
+</settings>\n' \
+"$NEXUS_URL" "$NEXUS_USER" "$NEXUS_PASS" \
+> /root/.m2/settings.xml
+
 
 RUN mvn dependency:get \
     -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
