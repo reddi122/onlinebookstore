@@ -80,12 +80,13 @@
 
 	<distributionManagement>
     	<repository>
-      		<id>maven-snapshots</id>
-      		<url>http://54.210.92.84:8082/repository/maven-snapshots/</url>
+      		<id>poc1</id>
+      		<url>http://18.144.61.36:8081/repository/poc1/</url>
     	</repository>
    </distributionManagement>
 
 </project>
+
 
 
 
