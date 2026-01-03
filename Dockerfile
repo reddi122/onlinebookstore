@@ -142,9 +142,9 @@
 
 
 
-# ==============================
-# STAGE 1 — DOWNLOAD ARTIFACT
-# ==============================
+ #==============================
+ #STAGE 1 — DOWNLOAD ARTIFACT
+ #==============================
 #FROM maven:3.9.6-eclipse-temurin-17 AS downloader
 
 #ARG NEXUS_URL
@@ -202,25 +202,30 @@ ARG ARTIFACT_ID=onlinebookstore
 ARG NEXUS_USER
 ARG NEXUS_PASS
 
-# Download artifact directly from Nexus (NO settings.xml)
+# Download WAR directly from Nexus SNAPSHOT repo
 RUN mvn dependency:copy \
-  -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
-  -DoutputDirectory=/artifact \
-  -DdestFileName=ROOT.war \
-  -DremoteRepositories=nexus::default::http://${NEXUS_USER}:${NEXUS_PASS}@${NEXUS_URL}/repository/poc1-snapshots \
-  -Dtransitive=false
+    -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
+    -DoutputDirectory=/artifact \
+    -DdestFileName=ROOT.war \
+    -DremoteRepositories=nexus::default::http://${NEXUS_USER}:${NEXUS_PASS}@${NEXUS_URL}/repository/poc1-snapshots \
+    -Dmaven.repo.local=/tmp/m2 \
+    -Dtransitive=false
 
 # ==============================
 # STAGE 2 — RUNTIME IMAGE
 # ==============================
 FROM tomcat:9.0-jdk17
 
+# Remove default apps
 RUN rm -rf /usr/local/tomcat/webapps/*
 
+# Copy ONLY the WAR file (no Maven, no credentials)
 COPY --from=downloader /artifact/ROOT.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
+
 
 
 
