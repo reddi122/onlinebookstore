@@ -173,7 +173,7 @@ RUN mvn dependency:copy \
   -Dartifact=${GROUP_ID}:${ARTIFACT_ID}:${VERSION}:war \
   -DoutputDirectory=/artifact \
   -DdestFileName=ROOT.war \
-  -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/maven-snapshots \
+  -DremoteRepositories=nexus::default::http://${NEXUS_URL}/repository/poc1-snapshots \
   -Dtransitive=false
 
 # ==============================
