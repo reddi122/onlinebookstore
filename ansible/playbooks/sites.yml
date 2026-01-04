@@ -21,4 +21,4 @@
   become: true
   roles:
     - jenkins
-
+    - jenkins_docker

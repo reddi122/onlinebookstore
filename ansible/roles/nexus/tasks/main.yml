@@ -1,5 +1,4 @@
 ---
-# 1️⃣ Create Nexus data directory
 - name: Create Nexus data directory
   file:
     path: /opt/nexus-data
@@ -8,7 +7,6 @@
     group: 200
     mode: "0777"
 
-# 2️⃣ Run Nexus container
 - name: Run Nexus container
   docker_container:
     name: nexus
@@ -20,38 +18,37 @@
     volumes:
       - /opt/nexus-data:/nexus-data
 
-# 3️⃣ Wait until Nexus UI is reachable
 - name: Wait for Nexus UI
   uri:
     url: "http://{{ ansible_host }}:8081"
-    method: GET
     status_code: 200
   register: nexus_ui
   retries: 40
   delay: 10
   until: nexus_ui.status == 200
 
-# 4️⃣ Check if admin.password exists (ONLY first run)
-- name: Check if Nexus admin password file exists
+- name: Check admin.password
   stat:
     path: /opt/nexus-data/admin.password
   register: admin_password_file
 
-# 5️⃣ Read admin password (first run only)
-- name: Read Nexus admin password
+- name: Check password changed marker
+  stat:
+    path: /opt/nexus-data/.password_changed
+  register: password_marker
+
+- name: Read admin password
   slurp:
     src: /opt/nexus-data/admin.password
   register: nexus_admin_password
-  when: admin_password_file.stat.exists
+  when: admin_password_file.stat.exists and not password_marker.stat.exists
 
-# 6️⃣ Decode admin password (first run only)
-- name: Decode Nexus admin password
+- name: Decode admin password
   set_fact:
     nexus_default_password: "{{ nexus_admin_password.content | b64decode | trim }}"
-  when: admin_password_file.stat.exists
+  when: admin_password_file.stat.exists and not password_marker.stat.exists
 
-# 7️⃣ Change admin password (first run only)
-- name: Change Nexus admin password
+- name: Change Nexus admin password (ONE TIME)
   uri:
     url: "http://{{ ansible_host }}:8081/service/rest/v1/security/users/admin/change-password"
     method: PUT
@@ -62,43 +59,9 @@
       Content-Type: text/plain
     body: "admin123"
     status_code: 204
-  when: admin_password_file.stat.exists
+  when: admin_password_file.stat.exists and not password_marker.stat.exists
 
-# 8️⃣ Wait until security APIs are ready (ALWAYS safe)
-- name: Wait for Nexus security API
-  uri:
-    url: "http://{{ ansible_host }}:8081/service/rest/v1/security/users"
-    method: GET
-    user: admin
-    password: admin123
-    force_basic_auth: yes
-    status_code: 200
-  register: security_ready
-  retries: 30
-  delay: 10
-  until: security_ready.status == 200
-
-# 9️⃣ Create Maven hosted repository (IDEMPOTENT)
-- name: Create Maven hosted repository
-  uri:
-    url: "http://{{ ansible_host }}:8081/service/rest/v1/repositories/maven/hosted"
-    method: POST
-    user: admin
-    password: admin123
-    force_basic_auth: yes
-    headers:
-      Content-Type: application/json
-    body_format: json
-    body:
-      name: poc1
-      online: true
-      storage:
-        blobStoreName: default
-        writePolicy: ALLOW_ONCE
-        strictContentTypeValidation: true
-      maven:
-        versionPolicy: RELEASE
-        layoutPolicy: STRICT
-    status_code:
-      - 201   # created
-      - 400   # already exists
+- name: Mark password changed
+  file:
+    path: /opt/nexus-data/.password_changed
+    state: touch

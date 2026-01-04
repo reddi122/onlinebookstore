@@ -16,7 +16,6 @@
     image: sonarqube:lts
     state: started
     restart_policy: always
-    recreate: yes
     ports:
       - "9000:9000"
     volumes:

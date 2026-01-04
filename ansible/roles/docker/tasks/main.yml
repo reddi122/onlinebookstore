@@ -1,18 +1,5 @@
 ---
-# 1️⃣ Remove old Docker packages (safe cleanup)
-- name: Remove old Docker packages
-  apt:
-    name:
-      - docker
-      - docker-engine
-      - docker.io
-      - containerd
-      - runc
-    state: absent
-    purge: yes
-  ignore_errors: yes
-
-# 2️⃣ Install prerequisites
+# 1️⃣ Install prerequisites
 - name: Install prerequisites
   apt:
     name:
@@ -22,21 +9,21 @@
     state: present
     update_cache: yes
 
-# 3️⃣ Create keyrings directory
+# 2️⃣ Create keyrings directory
 - name: Create keyrings directory
   file:
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
 
-# 4️⃣ Add Docker GPG key
+# 3️⃣ Add Docker GPG key
 - name: Add Docker GPG key
   get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/keyrings/docker.asc
     mode: "0644"
 
-# 5️⃣ Add Docker repository
+# 4️⃣ Add Docker repository
 - name: Add Docker repository
   copy:
     dest: /etc/apt/sources.list.d/docker.sources
@@ -48,7 +35,7 @@
       Architectures: amd64
       Signed-By: /etc/apt/keyrings/docker.asc
 
-# 6️⃣ Install Docker Engine
+# 5️⃣ Install Docker Engine
 - name: Install Docker Engine
   apt:
     name:
@@ -60,51 +47,31 @@
     state: present
     update_cache: yes
 
-# 7️⃣ Enable and start Docker service
+# 6️⃣ Enable Docker
 - name: Ensure Docker service is running
   systemd:
     name: docker
     state: started
     enabled: yes
 
-# 8️⃣ Ensure docker group exists
+# 7️⃣ Ensure docker group exists
 - name: Ensure docker group exists
   group:
     name: docker
     state: present
 
-# 9️⃣ Add ubuntu user to docker group
+# 8️⃣ Add ubuntu user to docker group
 - name: Add ubuntu user to docker group
   user:
     name: ubuntu
     groups: docker
     append: yes
 
-# 🔟 Reset Ansible SSH connection (required for group change)
-- name: Reset SSH connection
+# 9️⃣ Reset SSH connection (CRITICAL)
+- name: Reset SSH connection to apply docker group
   meta: reset_connection
 
-# 1️⃣1️⃣ Validate Docker engine (sudo-safe)
-- name: Validate Docker engine
+# 🔟 Validate Docker without sudo
+- name: Validate Docker access
   command: docker ps
-  become: true
   changed_when: false
-
-# 1️⃣2️⃣ Show docker.sock ownership (INFO only)
-- name: Show docker socket permissions
-  command: ls -l /var/run/docker.sock
-  changed_when: false
-
-# 1️⃣3️⃣ Important notice
-- name: Docker permission notice
-  debug:
-    msg: |
-      Docker installation completed successfully.
-
-      IMPORTANT:
-      Docker socket permissions are correct (root:docker, 660).
-      To use Docker without sudo:
-        1) logout
-        2) login again
-
-      This is required due to Linux group permission behavior.
